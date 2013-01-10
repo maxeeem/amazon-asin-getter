@@ -81,9 +81,9 @@ function queryAmazon($UPC) {
 
 	$xml = simplexml_load_string($response);
 	
-	$res = @$xml->ListMatchingProductsResult->Products->Product->Identifiers->MarketplaceASIN->ASIN;
+	$result = @$xml->ListMatchingProductsResult->Products->Product->Identifiers->MarketplaceASIN->ASIN;
 	
-	return (empty($res)) ? 0 : $res;
+	return (empty($result)) ? 0 : $result;
 
 }
 	
