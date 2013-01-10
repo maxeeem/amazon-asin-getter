@@ -11,7 +11,6 @@ require ".config.inc.php";
 
 }
 
-
 {# FUNCTiONS
 
 function getFile($source) {
@@ -32,7 +31,7 @@ function getFile($source) {
 
 }
 
-function queryAmazon($UPC) {
+function makeString($query) {
 
 	$base_url = "https://mws.amazonservices.com/Products/2011-10-01";
 
@@ -51,7 +50,7 @@ function queryAmazon($UPC) {
     'Timestamp'=> gmdate("Y-m-d\TH:i:s.\\0\\0\\0\\Z", time()),
     'Version'=> "2011-10-01",
     'MarketplaceId' => MARKETPLACE_ID,
-    'Query' => $UPC);
+    'Query' => $query);
 
 	$url_parts = array();
 	
@@ -68,25 +67,11 @@ function queryAmazon($UPC) {
 	$signature = urlencode(base64_encode($signature));
 
 	$url = $base_url . '?' . $url_string . "&Signature=" . $signature;
-	
-	$ch = curl_init();
-	
-	curl_setopt($ch, CURLOPT_URL,$url);
-	curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-	curl_setopt($ch, CURLOPT_TIMEOUT, 15);
-	curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
-	curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
-	
-	$response = curl_exec($ch);
 
-	$xml = simplexml_load_string($response);
-	
-	$result = @$xml->ListMatchingProductsResult->Products->Product->Identifiers->MarketplaceASIN->ASIN;
-	
-	return (empty($result)) ? 0 : $result;
+	return $url;
 
 }
-	
+
 function getASIN($file) {
 	
 	foreach ($file as $r => $row) { 
@@ -107,6 +92,28 @@ function getASIN($file) {
 
 	return $amazon;
 	
+}
+
+function queryAmazon($query) {
+	
+	$url = makeString($query);
+	
+	$ch = curl_init();
+	
+	curl_setopt($ch, CURLOPT_URL,$url);
+	curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+	curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+	curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+	curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+	
+	$response = curl_exec($ch);
+
+	$xml = simplexml_load_string($response);
+	
+	$result = @$xml->ListMatchingProductsResult->Products->Product->Identifiers->MarketplaceASIN->ASIN;
+	
+	return (empty($result)) ? 0 : $result;
+
 }
 
 function output($file) {
