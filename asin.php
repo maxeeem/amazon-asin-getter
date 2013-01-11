@@ -15,6 +15,8 @@ require ".config.inc.php";
 
 function getFile($source) {
 
+	global $partial;
+	
 	$headers = fgetcsv($source);
 
 	while ($row = fgetcsv($source)) {
@@ -26,7 +28,35 @@ function getFile($source) {
 	}
 
 	fclose($source);
+	
+	if (!is_null($partial)) {
+	
+		foreach ($rows as $r => $row)	if (array_key_exists($row['Part Number'], $partial)) unset($rows[$r]);
+	
+	}
+	
+	return $rows;
 
+}
+
+function getProcessed() {
+
+	global $out_dir, $a_headers;
+
+	$file = fopen($out_dir . $_FILES['userfile']['name'], "r");
+	
+	$skip = fgetcsv($file);
+	
+	while ($row = fgetcsv($file)) {
+	
+		foreach ($row as $i => $datum) $data[$a_headers[$i]] = $datum;
+		
+		$rows[$data['SKU']] = $data;
+		
+	}
+	
+	fclose($file);
+	
 	return $rows;
 
 }
@@ -74,6 +104,14 @@ function makeString($query) {
 
 function getASIN($file) {
 	
+	global $out_dir, $a_headers, $partial;
+
+	$output = fopen($out_dir . $_FILES['userfile']['name'], "w");
+	
+	fputcsv($output, $a_headers);
+	
+	if (!is_null($partial)) foreach ($partial as $part) fputcsv($output, $part);
+	
 	foreach ($file as $r => $row) { 
 	
 		$amazon[$r]['ASIN'] = queryAmazon(trim($row['UPC\EAN\ISBN\VIN']));
@@ -86,11 +124,13 @@ function getASIN($file) {
 		
 		$amazon[$r]['Weight'] = $row['Weight Major'];
 		
+		fputcsv($output, $amazon[$r]);
+		
 		sleep(5);
 		
 	}
-
-	return $amazon;
+	
+	fclose($output);
 	
 }
 
@@ -116,7 +156,7 @@ function queryAmazon($query) {
 
 }
 
-function output($file) {
+/*function output($file) {
 
 	global $out_dir, $a_headers;
 
@@ -130,7 +170,7 @@ function output($file) {
 	
 	echo "<p>Success! Your file is located in the following directory: {$out_dir}</p>";
 
-}
+}*/
 
 }
 
@@ -154,6 +194,8 @@ $out_dir = "//orw-file-server/shared/Employees/Jeff/amazon/";
 
 $a_headers = ['ASIN', 'SKU', 'Price', 'Quantity', 'Weight'];
 
+$partial = (!empty($_FILES) && file_exists($out_dir . $_FILES['userfile']['name'])) ? getProcessed() : NULL;
+
 }
 
 {# MAiN
@@ -164,9 +206,7 @@ else {
 
 $file = getFile($source);
 
-$amazon = getASIN($file);
-
-output($amazon);
+getASIN($file);
 
 }
 
